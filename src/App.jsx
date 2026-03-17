@@ -30,7 +30,7 @@ function App() {
   return (
     <AuthProvider>
       <DataProvider>
-        <BrowserRouter basename="/tradazone2">
+        <BrowserRouter basename="/Tradazone">
           <Routes>
             {/* Public routes */}
             <Route path="/signin" element={<SignIn />} />
