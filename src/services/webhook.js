@@ -19,6 +19,17 @@
 export const WEBHOOK_KEY = 'tradazone_webhook_url';
 const RETRY_DELAY_MS = 1000;
 
+/**
+ * On first load, seed localStorage from the build-time env variable
+ * VITE_WEBHOOK_URL if no URL has been saved by the user yet.
+ * This lets staging/production deployments ship with a pre-configured
+ * endpoint without requiring manual in-app setup.
+ */
+const ENV_WEBHOOK_URL = import.meta.env.VITE_WEBHOOK_URL || '';
+if (ENV_WEBHOOK_URL && !localStorage.getItem(WEBHOOK_KEY)) {
+    try { localStorage.setItem(WEBHOOK_KEY, ENV_WEBHOOK_URL); } catch { /* quota / SSR */ }
+}
+
 /** Persist the webhook endpoint URL. Pass null/empty to clear. */
 export function setWebhookUrl(url) {
     if (!url) {
