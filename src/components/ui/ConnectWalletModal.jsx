@@ -1,6 +1,13 @@
 /**
  * @fileoverview ConnectWalletModal — multi-network wallet connection modal.
  *
+ * ISSUE: #150 (Build size limits for ConnectWalletModal)
+ * Category: DevOps & Infrastructure
+ * Affected Area: ConnectWalletModal
+ * Description: Implement production build size limits and monitoring for ConnectWalletModal.
+ * This component is large due to multi-wallet support; size limits and monitoring
+ * are enforced in vite.config.js and CI to prevent bundle bloat.
+ *
  * Supports the following wallet providers:
  *  - LOBSTR  (Stellar / XLM)
  *  - Argent  (Starknet / STRK)
