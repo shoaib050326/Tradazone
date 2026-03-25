@@ -18,6 +18,82 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
 // Helper to simulate API delay
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
+// ---------------------------------------------------------------------------
+// 401 / token-expiration interceptor
+// ---------------------------------------------------------------------------
+
+/**
+ * Callback invoked whenever apiFetch receives a 401 Unauthorized response.
+ *
+ * Default behaviour: hard-redirect to the sign-in page so the user is always
+ * prompted to reconnect, even without a running React tree (e.g. a background
+ * fetch that fires after the component unmounts).
+ *
+ * Override at app initialisation to use React Router's navigate instead:
+ * ```js
+ * import { setUnauthorizedHandler } from './services/api';
+ * setUnauthorizedHandler(() => {
+ *     logout();
+ *     navigate('/signin?reason=expired');
+ * });
+ * ```
+ */
+let _onUnauthorized = () => {
+    const base = (import.meta.env.BASE_URL || '/').replace(/\/$/, '');
+    window.location.assign(`${base}/signin?reason=expired`);
+};
+
+/**
+ * Register a custom handler for 401 responses.
+ * Call this once during app initialisation inside a component that has access
+ * to both `useAuth` and `useNavigate` (e.g. a child of BrowserRouter).
+ *
+ * @param {() => void} handler
+ */
+export function setUnauthorizedHandler(handler) {
+    _onUnauthorized = handler;
+}
+
+/**
+ * Thin fetch wrapper that centralises authentication-error handling.
+ *
+ * - Returns parsed JSON on 2xx responses.
+ * - On 401: calls _onUnauthorized() and returns
+ *   `{ ok: false, error: 'ERR_TOKEN_EXPIRED', status: 401 }` so callers
+ *   receive a machine-readable code rather than an unhandled rejection.
+ * - On other non-2xx: throws an error enriched with `status` and `body`.
+ *
+ * Migration guide — replace each TODO mock with:
+ * ```js
+ * return apiFetch(`${API_BASE_URL}/resource`);
+ * ```
+ *
+ * @param {string} url
+ * @param {RequestInit} [options]
+ * @returns {Promise<unknown>}
+ */
+async function apiFetch(url, options = {}) {
+    const response = await fetch(url, options);
+
+    if (response.status === 401) {
+        _onUnauthorized();
+        return { ok: false, error: 'ERR_TOKEN_EXPIRED', status: 401 };
+    }
+
+    if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw Object.assign(
+            new Error(body.message || `API error ${response.status}`),
+            { status: response.status, body }
+        );
+    }
+
+    return response.json();
+}
+
+// Expose for tests and future real-fetch migrations (not needed by mock callers)
+export { apiFetch };
+
 const api = {
     // Customers
     customers: {

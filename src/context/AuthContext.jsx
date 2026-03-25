@@ -160,7 +160,7 @@ const WALLET_KEY  = `${STORAGE_PREFIX}_last_wallet`;
  *
  * @returns {UserData | null} The stored user data, or `null` if absent/expired.
  */
-function loadSession() {
+export function loadSession() {
     try {
         const raw = localStorage.getItem(SESSION_KEY);
         if (!raw) return null;
