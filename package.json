@@ -9,10 +9,12 @@
     "build": "vite build",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "lint": "eslint .",
     "preview": "vite preview",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist"
+    "deploy": "gh-pages -d dist",
+    "build:analyze": "npm run build && npx vite-bundle-analyzer dist"
   },
   "dependencies": {
     "@lobstrco/signer-extension-api": "^2.0.0",
