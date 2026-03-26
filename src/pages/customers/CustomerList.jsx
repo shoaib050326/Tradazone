@@ -5,6 +5,7 @@
  * Resolves Infrastructure Issue #172.
  */
 
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Users } from 'lucide-react';
 import DataTable from '../../components/tables/DataTable';
@@ -14,6 +15,14 @@ import { useData } from '../../context/DataContext';
 function CustomerList() {
     const navigate = useNavigate();
     const { customers } = useData();
+    const [query, setQuery] = useState('');
+
+    const filtered = query.trim()
+        ? customers.filter((c) =>
+              c.name.toLowerCase().includes(query.toLowerCase()) ||
+              c.email.toLowerCase().includes(query.toLowerCase())
+          )
+        : customers;
 
     const columns = [
         { key: 'name', header: 'Name' },
@@ -48,11 +57,17 @@ function CustomerList() {
                 <>
                     <div className="flex items-center gap-3 mb-5 px-4 py-2.5 bg-white border border-border rounded-lg">
                         <Search size={18} className="text-t-muted" />
-                        <input type="text" placeholder="Search customers..." className="flex-1 bg-transparent outline-none text-sm" />
+                        <input
+                            type="text"
+                            placeholder="Search customers..."
+                            className="flex-1 bg-transparent outline-none text-sm"
+                            value={query}
+                            onChange={(e) => setQuery(e.target.value)}
+                        />
                     </div>
                     <DataTable
                         columns={columns}
-                        data={customers}
+                        data={filtered}
                         onRowClick={(customer) => navigate(`/customers/${customer.id}`)}
                         emptyMessage="No customers found"
                     />

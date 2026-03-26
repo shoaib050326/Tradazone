@@ -146,6 +146,58 @@ export function DataProvider({ children }) {
         []
     );
 
+    /**
+     * markCheckoutPaid — marks a checkout as paid, updates the linked customer's
+     * totalSpent and invoiceCount, then fires the checkout.paid webhook.
+     *
+     * @param {string} checkoutId - ID of the checkout being paid
+     * @param {string} customerId - ID of the customer who paid
+     * @param {string} [walletType] - wallet type used for payment (e.g. 'starknet')
+     */
+    const markCheckoutPaid = useCallback(
+        (checkoutId, customerId, walletType = '') => {
+            let paidCheckout;
+            setCheckouts((prev) => {
+                const next = prev.map((c) =>
+                    c.id === checkoutId
+                        ? { ...c, status: 'paid', payments: c.payments + 1 }
+                        : c
+                );
+                paidCheckout = next.find((c) => c.id === checkoutId);
+                save(KEYS.checkouts, next);
+                return next;
+            });
+            if (customerId) {
+                setCustomers((prev) => {
+                    const next = prev.map((c) => {
+                        if (c.id !== customerId) return c;
+                        const prevSpent = parseFloat(c.totalSpent.replace(/,/g, '')) || 0;
+                        const added = parseFloat(paidCheckout?.amount || '0') || 0;
+                        return {
+                            ...c,
+                            totalSpent: (prevSpent + added).toLocaleString(),
+                            invoiceCount: c.invoiceCount + 1,
+                        };
+                    });
+                    save(KEYS.customers, next);
+                    return next;
+                });
+            }
+            // Fire checkout.paid webhook (non-blocking)
+            if (paidCheckout) {
+                dispatchWebhook('checkout.paid', {
+                    id: paidCheckout.id,
+                    title: paidCheckout.title,
+                    amount: paidCheckout.amount,
+                    currency: paidCheckout.currency,
+                    customerId,
+                    walletType,
+                });
+            }
+        },
+        []
+    );
+
     return (
         <DataContext.Provider
             value={{
@@ -159,6 +211,7 @@ export function DataProvider({ children }) {
                 addItem,
                 addInvoice,
                 addCheckout,
+                markCheckoutPaid,
                 setWebhookUrl,
                 getWebhookUrl,
             }}

@@ -206,3 +206,81 @@ describe('useData', () => {
     spy.mockRestore();
   });
 });
+
+// ─── markCheckoutPaid ─────────────────────────────────────────────────────────
+
+describe('markCheckoutPaid', () => {
+  it('marks the checkout status as paid', () => {
+    const { result } = renderHook(() => useData(), { wrapper });
+    let chk;
+    act(() => { chk = result.current.addCheckout({ title: 'Plan A', amount: '100' }); });
+    act(() => { result.current.markCheckoutPaid(chk.id, null); });
+    expect(result.current.checkouts.find((c) => c.id === chk.id).status).toBe('paid');
+  });
+
+  it('increments checkout payments count', () => {
+    const { result } = renderHook(() => useData(), { wrapper });
+    let chk;
+    act(() => { chk = result.current.addCheckout({ title: 'Plan A', amount: '100' }); });
+    act(() => { result.current.markCheckoutPaid(chk.id, null); });
+    expect(result.current.checkouts.find((c) => c.id === chk.id).payments).toBe(1);
+  });
+
+  it('updates customer totalSpent and invoiceCount', () => {
+    const { result } = renderHook(() => useData(), { wrapper });
+    let customer, chk;
+    act(() => { customer = result.current.addCustomer({ name: 'Alice', email: 'alice@example.com' }); });
+    act(() => { chk = result.current.addCheckout({ title: 'Plan A', amount: '200' }); });
+    act(() => { result.current.markCheckoutPaid(chk.id, customer.id); });
+    const updated = result.current.customers.find((c) => c.id === customer.id);
+    expect(updated.invoiceCount).toBe(1);
+    expect(updated.totalSpent).toBe('200');
+  });
+
+  it('accumulates totalSpent across multiple paid checkouts', () => {
+    const { result } = renderHook(() => useData(), { wrapper });
+    let customer, chk1, chk2;
+    act(() => { customer = result.current.addCustomer({ name: 'Bob', email: 'bob@example.com' }); });
+    act(() => {
+      chk1 = result.current.addCheckout({ title: 'Plan A', amount: '100' });
+      chk2 = result.current.addCheckout({ title: 'Plan B', amount: '150' });
+    });
+    act(() => {
+      result.current.markCheckoutPaid(chk1.id, customer.id);
+      result.current.markCheckoutPaid(chk2.id, customer.id);
+    });
+    const updated = result.current.customers.find((c) => c.id === customer.id);
+    expect(updated.invoiceCount).toBe(2);
+    expect(updated.totalSpent).toBe('250');
+  });
+
+  it('fires checkout.paid webhook with correct payload', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({ ok: true, status: 200 });
+    vi.stubGlobal('fetch', mockFetch);
+    localStorage.setItem('tradazone_webhook_url', 'https://example.com/hook');
+
+    const { result } = renderHook(() => useData(), { wrapper });
+    let chk;
+    act(() => { chk = result.current.addCheckout({ title: 'Plan A', amount: '100', currency: 'STRK' }); });
+    await act(async () => { result.current.markCheckoutPaid(chk.id, null, 'starknet'); });
+
+    const calls = mockFetch.mock.calls.filter((c) => {
+      try { return JSON.parse(c[1].body).event === 'checkout.paid'; } catch { return false; }
+    });
+    expect(calls.length).toBeGreaterThan(0);
+    const body = JSON.parse(calls[0][1].body);
+    expect(body.payload.id).toBe(chk.id);
+    expect(body.payload.walletType).toBe('starknet');
+  });
+
+  it('does not update other customers when customerId is null', () => {
+    const { result } = renderHook(() => useData(), { wrapper });
+    let customer, chk;
+    act(() => { customer = result.current.addCustomer({ name: 'Carol', email: 'carol@example.com' }); });
+    act(() => { chk = result.current.addCheckout({ title: 'Plan A', amount: '100' }); });
+    act(() => { result.current.markCheckoutPaid(chk.id, null); });
+    const unchanged = result.current.customers.find((c) => c.id === customer.id);
+    expect(unchanged.invoiceCount).toBe(0);
+    expect(unchanged.totalSpent).toBe('0');
+  });
+});

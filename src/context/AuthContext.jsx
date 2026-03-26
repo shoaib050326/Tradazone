@@ -19,6 +19,11 @@
  * | `'starknet_generic'` | Starknet | `connectStarknetWallet()`  |
  * | `'evm'`            | EVM       | `connectEvmWallet()`       |
  *
+ * ## Dark mode / theming
+ * Theme preference (dark/light mode) is intentionally **not** managed here.
+ * It is a UI concern independent of authentication. See
+ * `src/context/ThemeContext.jsx` and {@link useTheme} for theme state.
+ *
  * @module AuthContext
  */
 

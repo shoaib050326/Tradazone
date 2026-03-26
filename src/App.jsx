@@ -25,6 +25,7 @@ import NotificationSettings from './pages/settings/NotificationSettings';
 import PasswordSettings from './pages/settings/PasswordSettings';
 import { AuthProvider } from './context/AuthContext';
 import { DataProvider } from './context/DataContext';
+import { ThemeProvider } from './context/ThemeContext';
 
 /**
  * Webhook integration — checkout events
@@ -45,6 +46,7 @@ import { DataProvider } from './context/DataContext';
 
 function App() {
   return (
+    <ThemeProvider>
     <AuthProvider>
       <DataProvider>
         <BrowserRouter basename="/Tradazone">
@@ -91,6 +93,7 @@ function App() {
         </BrowserRouter>
       </DataProvider>
     </AuthProvider>
+    </ThemeProvider>
   );
 }
 
