@@ -33,8 +33,8 @@ jobs:
         run: pnpm build
 
       - name: Run size-limit check
-        run: pnpm size
-        continue-on-error: true
+        run: |
+          pnpm size --json 2>&1 || true
 
       - name: Analyze bundle sizes
         run: |
@@ -71,9 +71,12 @@ jobs:
       - name: Fail if size limits exceeded
         run: |
           # Check if size-limit reported any errors
-          if pnpm size --json 2>&1 | grep -q "Error"; then
+          RESULT=$(pnpm size --json 2>&1 || true)
+          if echo "$RESULT" | grep -q "Error"; then
             echo "❌ Bundle size limits exceeded!"
+            echo "$RESULT"
             exit 1
           fi
           echo "✅ Bundle size check passed"
+          echo "$RESULT"
         shell: bash
