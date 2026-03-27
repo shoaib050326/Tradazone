@@ -59,9 +59,7 @@ jobs:
         if: always()
         with:
           name: bundle-report
-          path: |
-            dist/
-            size-limit.json
+          path: dist/
 
       - name: Check size-limit result
         run: |
